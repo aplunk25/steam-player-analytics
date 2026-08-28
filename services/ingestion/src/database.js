@@ -1,0 +1,46 @@
+const { Pool } = require("pg");
+
+const pool = new Pool({
+	host: "localhost",
+	port: 5433,
+	database: "steam_analytics",
+	user: "postgres",
+	password: "postgres"
+});
+
+async function addGame(appId, name){
+	const result = await pool.query(
+		`
+		INSERT INTO games (steam_app_id, name)
+		VALUES ($1, $2)
+		ON CONFLICT (steam_app_id)
+		DO UPDATE SET name = EXCLUDED.name
+		RETURNING id;
+		`,
+		[appId, name]
+	);
+	return result.rows[0].id; 
+}
+
+async function addPlayerCount(gameId, playerCount){
+	await pool.query(
+		`
+		INSERT INTO player_counts
+			(game_id, player_count, recorded_at)
+		VALUES ($1, $2, NOW());
+		`,
+		[gameId, playerCount]
+	);
+}
+
+async function closeDatabase(){
+	await pool.end();	
+}
+	
+
+module.exports = {
+	addGame,
+	addPlayerCount,
+	closeDatabase
+
+};
