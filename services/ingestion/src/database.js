@@ -22,6 +22,18 @@ async function addGame(appId, name){
 	return result.rows[0].id; 
 }
 
+async function getGameIdBySteamAppId(appId){
+	const result = await pool.query(
+		`
+		SELECT id
+		FROM games
+		WHERE steam_app_id = $1;
+		`,
+		[appId]
+	);
+	return result.rows[0] ? result.rows[0].id : null;
+}
+
 async function addPlayerCount(gameId, playerCount){
 	await pool.query(
 		`
@@ -40,6 +52,7 @@ async function closeDatabase(){
 
 module.exports = {
 	addGame,
+	getGameIdBySteamAppId,
 	addPlayerCount,
 	closeDatabase
 

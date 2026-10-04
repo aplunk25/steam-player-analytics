@@ -1,0 +1,12 @@
+{
+  "name": "steam-player-analytics",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm --prefix services/api install && npm --prefix services/ingestion install && npm --prefix frontend install",
+    "db": "docker compose up -d postgres",
+    "dev": "npm run db && concurrently -k -n api,ingest,web -c blue,magenta,green \"node services/api/src/index.js\" \"node services/ingestion/src/index.js\" \"npm --prefix frontend run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

@@ -1,52 +1,64 @@
-const { getPlayerCount } = require("./steam");
+const {
+    getPlayerCount,
+    getMostPlayedAppIds,
+    getAppName
+} = require("./steam");
 
 const {
     addGame,
+    getGameIdBySteamAppId,
     addPlayerCount
 } = require("./database");
 
-const games = [
-    {
-        appId: 730,
-        name: "Counter-Strike 2"
-    },
-    {
-        appId: 570,
-        name: "Dota 2"
-    },
-    {
-        appId: 578080,
-        name: "PUBG: Battlegrounds"
+// How many of Steam's most played games to track.
+const TOP_GAMES_LIMIT = Number(process.env.TOP_GAMES_LIMIT) || 25;
+
+
+// Looks up the game in the DB, adding it (with its store name) if it's new.
+async function getOrAddGame(appId) {
+    const existingId = await getGameIdBySteamAppId(appId);
+
+    if (existingId) {
+        return existingId;
     }
-];
+
+    const name = await getAppName(appId);
+
+    return addGame(appId, name);
+}
 
 
 async function run() {
     console.log("Starting Steam ingestion...\n");
 
+    let appIds;
+
     try {
-        for (const game of games) {
-            const playerCount = await getPlayerCount(game.appId);
+        appIds = await getMostPlayedAppIds(TOP_GAMES_LIMIT);
+    } catch (error) {
+        console.error("Failed to fetch most played games:", error.message);
+        return;
+    }
+
+    let inserted = 0;
+
+    for (const appId of appIds) {
+        try {
+            const gameId = await getOrAddGame(appId);
+            const playerCount = await getPlayerCount(appId);
+
+            await addPlayerCount(gameId, playerCount);
+            inserted++;
 
             console.log(
-                `${game.name}: ${playerCount.toLocaleString()} players`
+                `${appId}: ${playerCount.toLocaleString()} players`
             );
-
-            const gameId = await addGame(
-                game.appId,
-                game.name
-            );
-
-            await addPlayerCount(
-                gameId,
-                playerCount
-            );
+        } catch (error) {
+            console.error(`Skipping app ${appId}:`, error.message);
         }
-
-        console.log("\nSuccessfully inserted player counts.");
-    } catch (error) {
-        console.error("Ingestion failed:", error.message);
     }
+
+    console.log(`\nInserted player counts for ${inserted}/${appIds.length} games.`);
 }
 
 
