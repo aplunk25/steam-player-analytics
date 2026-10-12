@@ -73,6 +73,11 @@ app.get("/api/games/:id/stats", async (req, res) => {
 });
 
 
+
+if(require.main === module){
 app.listen(PORT, () => {
     console.log(`API server running on http://localhost:${PORT}`);
 });
+}
+
+module.exports = app;
