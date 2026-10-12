@@ -1,7 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 
+const migrate = require("./migrate");
+
 const {
+    pool,
     getGames,
     getPlayerHistory,
     getGameStats
@@ -9,7 +12,7 @@ const {
 
 const app = express();
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -75,9 +78,16 @@ app.get("/api/games/:id/stats", async (req, res) => {
 
 
 if(require.main === module){
-app.listen(PORT, () => {
-    console.log(`API server running on http://localhost:${PORT}`);
-});
+migrate(pool)
+    .then(() => {
+        app.listen(PORT, () => {
+            console.log(`API server running on port ${PORT}`);
+        });
+    })
+    .catch((error) => {
+        console.error("Migration failed:", error);
+        process.exit(1);
+    });
 }
 
 module.exports = app;

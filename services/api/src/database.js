@@ -1,12 +1,10 @@
 const { Pool } = require("pg");
 
 
+// Falls back to the local docker-compose database when DATABASE_URL isn't set.
 const pool = new Pool({
-    host: "localhost",
-    port: 5433,
-    database: "steam_analytics",
-    user: "postgres",
-    password: "postgres"
+    connectionString: process.env.DATABASE_URL
+        || "postgresql://postgres:postgres@localhost:5433/steam_analytics"
 });
 
 
@@ -105,6 +103,7 @@ async function getGameStats(gameId) {
 }
 
 module.exports = {
+    pool,
     getGames, 
     getPlayerHistory,
     getGameStats
