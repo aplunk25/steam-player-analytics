@@ -1,3 +1,6 @@
+const { invalidateGameCache, connectRedis } = require("./cache");
+
+
 const {
     getPlayerCount,
     getMostPlayedAppIds,
@@ -48,6 +51,8 @@ async function run() {
             const playerCount = await getPlayerCount(appId);
 
             await addPlayerCount(gameId, playerCount);
+
+            await invalidateGameCache(gameId);
             inserted++;
 
             console.log(
@@ -63,12 +68,18 @@ async function run() {
 
 
 async function start() {
+    try {
+        await connectRedis();
+        console.log("Connected to Redis.");
+    } catch (error) {
+        console.error("Redis unavailable; continuing without cache.");
+    }
+
     await run();
 
     setInterval(async () => {
         await run();
     }, 10 * 60 * 1000);
 }
-
 
 start();
